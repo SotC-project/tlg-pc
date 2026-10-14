@@ -973,6 +973,7 @@ void TextureCache::RefreshImage(Image& image) {
     }
 
     runtime.UploadImage(&image, buffer, image_copies);
+    image.tlg_tag = -2; // new contents: look the menu tag up again
     {
         // A guest write that faulted while the data above was being read has untracked the
         // image and set its dirty flag, which the upload then cleared with the rest. Nothing

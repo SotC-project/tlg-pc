@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include "core/i3/menu.h"
+#include "core/tlg/options.h"
 #include "layer.h"
 
 #include <SDL3/SDL_events.h>
@@ -513,6 +514,7 @@ void L::Draw() {
     }
 
     I3::Menu::Draw();
+    Tlg::Options::Draw();
 
     PopID();
 }

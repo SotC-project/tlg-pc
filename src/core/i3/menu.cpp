@@ -139,6 +139,9 @@ constexpr std::array<Action, 27> Actions{{
     {"touchpad_two_fingers", "Touchpad Both Thumbs (Move Car)"},
 }};
 
+} // namespace
+
+// Binding-file helpers, shared with the PC rows of The Last Guardian (core/tlg/options.cpp).
 bool IsMouseName(const std::string& name) {
     return name.ends_with("button") || name.starts_with("mousewheel");
 }
@@ -298,6 +301,8 @@ std::string NameOf(const SDL_Event& event) {
     }
     return {};
 }
+
+namespace {
 
 SDL_Window* Window() {
     const auto id = static_cast<SDL_WindowID>(

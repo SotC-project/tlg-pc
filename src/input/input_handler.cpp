@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include "core/i3/menu.h"
+#include "core/tlg/options.h"
 #include "input_handler.h"
 
 #include <fstream>
@@ -865,6 +866,9 @@ void ControllerOutput::FinalizeUpdate(u8 gamepad_index) {
             if (button == SDL_GAMEPAD_BUTTON_START && I3::Menu::OnOptionsButton(new_button_state)) {
                 break;
             }
+            if (Tlg::Options::OnButton(SDLGamepadToOrbisButton(button), new_button_state)) {
+                break;
+            }
             controller->Button(SDLGamepadToOrbisButton(button), new_button_state);
             break;
         }
@@ -905,6 +909,10 @@ void ControllerOutput::FinalizeUpdate(u8 gamepad_index) {
             return;
         default:
             break;
+        }
+        if (Tlg::Options::OnAxis(c_axis, *new_param)) {
+            controller->Axis(c_axis, GetAxis(-0x80, 0x7f, 0));
+            return;
         }
         controller->Axis(c_axis, GetAxis(-0x80, 0x7f, *new_param * multiplier));
     }

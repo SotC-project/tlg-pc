@@ -4,6 +4,7 @@
 #include "core/i3/achievements.h"
 #include "video_core/pass_filter.h"
 #include "core/i3/menu.h"
+#include "core/tlg/options.h"
 #include "common/recording.h"
 #include <fstream>
 #include <cstdlib>
@@ -516,6 +517,10 @@ void WindowSDL::WaitEvent() {
     }
     // The PC options overlay takes input ahead of the game while it is open.
     if (I3::Menu::OnEvent(event)) {
+        return;
+    }
+    // The Last Guardian: a key being captured for a binding on the PC Controls page.
+    if (Tlg::Options::OnEvent(event)) {
         return;
     }
 

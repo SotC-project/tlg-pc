@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include <string>
+#include <vector>
+
 union SDL_Event;
 struct ImFont;
 
@@ -26,5 +29,14 @@ bool OnEvent(const SDL_Event& event);
 /// The condensed face used for the overlay text, loaded once with the other fonts.
 void SetFont(ImFont* font);
 ImFont* Font();
+
+// The binding file of the running game: its lines, the keyboard keys bound to a pad output,
+// binding one key (the file is rewritten, applied at once and the icons redrawn), the binding
+// name of a key or mouse event, and how a key name is shown.
+std::vector<std::string> ReadLines();
+std::string KeysOf(const std::vector<std::string>& lines, const char* pad);
+void Bind(const char* pad, const std::string& key);
+std::string NameOf(const SDL_Event& event);
+std::string DisplayName(const std::string& key);
 
 } // namespace I3::Menu

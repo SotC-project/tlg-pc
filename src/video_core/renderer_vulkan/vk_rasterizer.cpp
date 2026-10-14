@@ -29,11 +29,15 @@
 #include "video_core/renderer_vulkan/vk_instance.h"
 #include "video_core/renderer_vulkan/vk_pipeline_cache.h"
 #include "video_core/renderer_vulkan/vk_rasterizer.h"
+#include "core/tlg/ui.h"
 #include "video_core/renderer_vulkan/vk_runtime.h"
 #include "video_core/renderer_vulkan/vk_scheduler.h"
 #include "video_core/renderer_vulkan/vk_shader_hle.h"
 #include "video_core/texture_cache/image_view.h"
 #include "video_core/texture_cache/texture_cache.h"
+
+// The Last Guardian: menu textures (core/tlg/ui.h) sampled by the draw being bound.
+static u32 g_tlg_draw_tags = 0;
 
 namespace Vulkan {
 
@@ -742,6 +746,10 @@ void Rasterizer::Draw(bool is_indexed, u32 index_offset) {
     stage_done(3);
     if (!bound) {
         ++g_stats.bind_failed;
+        return;
+    }
+    if (Tlg::Ui::OnDraw(g_tlg_draw_tags)) {
+        ++g_stats.filtered;
         return;
     }
     ++g_stats.drawn;
@@ -1922,6 +1930,7 @@ void Rasterizer::OnFence() {
 }
 
 bool Rasterizer::BindResources(const Pipeline* pipeline) {
+    g_tlg_draw_tags = 0;
     if (IsComputeImageCopy(pipeline) || IsComputeMetaClear(pipeline) ||
         IsComputeImageClear(pipeline)) {
         return false;
@@ -2521,6 +2530,20 @@ void Rasterizer::BindTextures(const Shader::Info& stage, Shader::Backend::Bindin
 
             auto& image = texture_cache.GetImage(image_id);
             auto& image_view = texture_cache.FindTexture(image_id, desc);
+            if (Tlg::Ui::Enabled()) {
+                if (image.tlg_tag == -2) {
+                    const auto& ii = image.info;
+                    image.tlg_tag = -1;
+                    if (ii.guest_size <= 512_KB && ii.size.depth == 1 &&
+                        memory->IsValidMapping(ii.guest_address, ii.guest_size)) {
+                        image.tlg_tag = static_cast<s8>(Tlg::Ui::Lookup(
+                            memory->HashSparseMemory(ii.guest_address, ii.guest_size)));
+                    }
+                }
+                if (image.tlg_tag >= 0) {
+                    g_tlg_draw_tags |= 1u << image.tlg_tag;
+                }
+            }
             {
                 // Temporary: who reads and writes the 8192-wide lighting atlases.
                 static const u64 only = [] {

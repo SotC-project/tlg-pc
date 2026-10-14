@@ -10,6 +10,7 @@
 
 #include <filesystem>
 #include "core/i3/menu.h"
+#include "core/tlg/options.h"
 #include "common/path_util.h"
 #include "core/debug_state.h"
 #include "core/devtools/layer.h"
@@ -111,6 +112,17 @@ void Initialize(const ::Vulkan::Instance& instance, const Frontend::WindowSDL& w
             ImFontConfig overlay_cfg{};
             overlay_cfg.OversampleH = 2;
             I3::Menu::SetFont(io.Fonts->AddFontFromFileTTF(path, 72.0f, &overlay_cfg));
+            break;
+        }
+    }
+
+    // Face of the PC rows of The Last Guardian's Options screen, close to the game's own.
+    for (const char* path : {"C:/Windows/Fonts/segoeui.ttf", "C:/Windows/Fonts/arial.ttf"}) {
+        std::error_code ec;
+        if (std::filesystem::exists(path, ec)) {
+            ImFontConfig tlg_cfg{};
+            tlg_cfg.OversampleH = 2;
+            Tlg::Options::SetFont(io.Fonts->AddFontFromFileTTF(path, 64.0f, &tlg_cfg));
             break;
         }
     }

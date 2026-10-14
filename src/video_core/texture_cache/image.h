@@ -170,6 +170,8 @@ public:
     u64 lru_id{};
     u64 tick_accessed_last{};
     u64 hash{};
+    /// The Last Guardian: menu texture tag (core/tlg/ui.h), -1 none, -2 not looked up yet.
+    s8 tlg_tag = -2;
 
     struct {
         u32 texture : 1;

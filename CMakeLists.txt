@@ -744,6 +744,11 @@ set(DEV_TOOLS src/core/devtools/layer.cpp
               src/core/i3/lang.cpp
               src/core/i3/lang.h
               src/core/i3/menu.cpp
+              src/core/tlg/options.cpp
+              src/core/tlg/options.h
+              src/core/tlg/ui.cpp
+              src/core/tlg/ui.h
+              src/core/tlg/ui_textures.h
               src/core/i3/menu.h
               src/core/devtools/layer.h
               src/core/devtools/layer_extra.cpp
