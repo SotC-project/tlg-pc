@@ -50,7 +50,10 @@ public:
     }
 
     const Shader::Info& GetStage(Shader::SwStage stage) const noexcept {
-        return *stages[u32(stage)];
+        // Depth-only pipelines (The Last Guardian) have no fragment stage: callers read hashes
+        // and masks, which are zero for a missing stage.
+        static const Shader::Info none{};
+        return stages[u32(stage)] ? *stages[u32(stage)] : none;
     }
 
     bool IsCompute() const {
