@@ -424,6 +424,22 @@ int ProcessStates(OrbisPadData* pData, const Input::State* states, s32 num) {
         pData[i].timestamp = states[i].time;
         pData[i].connectedCount = states[i].connected_count;
         pData[i].deviceUniqueDataLen = 0;
+        // Test aid: TLG_PADLOG=1 logs what the game reads whenever it changes.
+        static const bool pad_log = std::getenv("TLG_PADLOG") != nullptr;
+        if (pad_log) {
+            static std::string last;
+            const auto now = fmt::format(
+                "buttons {:#x} L {},{} R {},{} L2 {} R2 {} acc {:.2f},{:.2f},{:.2f} ori {:.2f},{:.2f},{:.2f},{:.2f} touch {}",
+                u32(pData[i].buttons), pData[i].leftStick.x, pData[i].leftStick.y,
+                pData[i].rightStick.x, pData[i].rightStick.y, pData[i].analogButtons.l2,
+                pData[i].analogButtons.r2, pData[i].acceleration.x, pData[i].acceleration.y,
+                pData[i].acceleration.z, pData[i].orientation.x, pData[i].orientation.y,
+                pData[i].orientation.z, pData[i].orientation.w, pData[i].touchData.touchNum);
+            if (now != last) {
+                LOG_ERROR(Lib_Pad, "pad read: {}", now);
+                last = now;
+            }
+        }
     }
 
     return num;
