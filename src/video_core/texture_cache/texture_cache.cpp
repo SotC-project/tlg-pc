@@ -1094,6 +1094,12 @@ void TextureCache::ApplyTexturePack(Image& image) {
         if (only_size > 1 && (info.size.width != only_size || info.size.height != only_size)) {
             return;
         }
+        // SOTC_TEXDUMP_HASHES=<hex>,<hex>: only those textures (hash of the guest data, which for
+        // a texture loaded as is equals XXH3 of the file's pixel data).
+        static const char* only_hashes = std::getenv("SOTC_TEXDUMP_HASHES");
+        if (dumping && only_hashes && !std::strstr(only_hashes, fmt::format("{:016x}", hash).c_str())) {
+            return;
+        }
         static std::unordered_set<u64> dumped;
         if (!dumped.insert(hash).second) {
             return;

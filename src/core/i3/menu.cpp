@@ -12,6 +12,7 @@
 #include <cctype>
 #include <array>
 #include <atomic>
+#include <span>
 #include <filesystem>
 #include <fstream>
 #include <mutex>
@@ -138,6 +139,43 @@ constexpr std::array<Action, 27> Actions{{
     {"touchpad_swipe_right", "Touchpad Swipe Right"},
     {"touchpad_two_fingers", "Touchpad Both Thumbs (Move Car)"},
 }};
+
+// The Last Guardian: the same overlay with only Graphics and Controls, opened by F2 or
+// L3+R3 (the game has its own title screen, pause menu and Options button).
+bool IsTlg() {
+    static const bool tlg = Common::ElfInfo::Instance().GameSerial() == "CUSA03627";
+    return tlg;
+}
+
+constexpr std::array<Action, 20> TlgActions{{
+    {"cross", "Jump"},
+    {"circle", "Grab / Interact"},
+    {"square", "Square"},
+    {"triangle", "Triangle"},
+    {"r1", "Call Trico / Commands"},
+    {"l1", "L1"},
+    {"r2", "R2"},
+    {"l2", "L2"},
+    {"l3", "L3"},
+    {"r3", "Reset Camera"},
+    {"options", "Pause"},
+    {"touchpad_center", "Touchpad"},
+    {"pad_up", "D-pad Up"},
+    {"pad_down", "D-pad Down"},
+    {"pad_left", "D-pad Left"},
+    {"pad_right", "D-pad Right"},
+    {"axis_left_y_minus", "Move Forward"},
+    {"axis_left_y_plus", "Move Back"},
+    {"axis_left_x_minus", "Move Left"},
+    {"axis_left_x_plus", "Move Right"},
+}};
+
+std::span<const Action> GameActions() {
+    if (IsTlg()) {
+        return TlgActions;
+    }
+    return Actions;
+}
 
 bool IsMouseName(const std::string& name) {
     return name.ends_with("button") || name.starts_with("mousewheel");
@@ -458,6 +496,9 @@ constexpr std::array<const char*, 14> LanguageNames{
     "Русский", "Suomi",    "Svenska", "Dansk",   "Norsk",    "Polski",     "Türkçe"};
 constexpr std::array<int, 14> LanguageIds{1, 2, 3, 4, 5, 6, 7, 8, 12, 13, 14, 15, 16, 19};
 
+// The Last Guardian ships English, French, Spanish and Portuguese.
+constexpr std::array<int, 4> TlgLanguageIds{1, 2, 3, 7};
+
 /// Index of the stored console language among the game's. The regional variants count as the
 /// language they are shown in; a language the game lacks counts as English.
 int LanguageIndex() {
@@ -476,7 +517,13 @@ struct Row {
 
 std::vector<Row> BuildRows() {
     std::vector<Row> rows;
-    if (page == Page::Main || page == Page::Start) {
+    if (page == Page::Main && IsTlg()) {
+        rows.push_back({"RESUME", "", Tr("Return to the game")});
+        rows.push_back({"GRAPHICS", "", Tr("Frame rate, display and upscaling")});
+        rows.push_back({"CONTROLS", "", Tr("Change the keyboard and mouse bindings")});
+        rows.push_back({"QUIT", quit_armed ? Tr("Press again to quit") : "",
+                        Tr("Close the game. Progress since the last checkpoint is lost")});
+    } else if (page == Page::Main || page == Page::Start) {
         const std::string trophies =
             fmt::format("{} / {}", Achievements::UnlockedCount(), Achievements::Count());
         if (page == Page::Start) {
@@ -551,7 +598,7 @@ std::vector<Row> BuildRows() {
         rows.push_back({"BACK", "", Tr("Return to the previous menu")});
     } else if (page == Page::Controls) {
         const auto lines = ReadLines();
-        for (const auto& action : Actions) {
+        for (const auto& action : GameActions()) {
             rows.push_back({action.label, KeysOf(lines, action.pad),
                             Tr("Confirm, then press the key or mouse button to use")});
         }
@@ -575,6 +622,12 @@ std::vector<Row> BuildRows() {
                         Tr("Sharpening pass of the upscaler. Applies at once"), true});
         rows.push_back({"Frame Rate Counter", fps_shown ? Tr("On") : Tr("Off"),
                         Tr("Applies at once"), true});
+        if (IsTlg()) {
+            rows.push_back({"Language", LanguageNames[LanguageIndex()],
+                            Tr("Applies the next time the game starts"), true});
+            rows.push_back({"BACK", "", Tr("Return to the previous menu")});
+            return rows;
+        }
         const int preset = CurrentPreset();
         rows.push_back(
             {"Effects Preset", preset < 0 ? Tr("Custom") : Tr(PresetNames[preset]),
@@ -663,6 +716,13 @@ void AdjustGraphics(int row, int step) {
         Overlay::ToggleSimpleFps();
         return;
     case 7: {
+        if (IsTlg()) {
+            const int count = static_cast<int>(TlgLanguageIds.size());
+            const int index = IndexOf(TlgLanguageIds, LanguageIds[LanguageIndex()], 0);
+            EmulatorSettings.SetConsoleLanguage(TlgLanguageIds[(index + step + count) % count]);
+            EmulatorSettings.Save();
+            return;
+        }
         const int count = static_cast<int>(Presets.size());
         const int preset = (std::max(CurrentPreset(), 0) + step + count) % count;
         for (size_t e = 0; e < effects.size(); e++) {
@@ -711,7 +771,7 @@ void AdjustGraphics(int row, int step) {
 
 /// The page a sub-page goes back to.
 Page ParentOf(Page of) {
-    return of == Page::Controls || of == Page::Graphics ? Page::Options : home;
+    return (of == Page::Controls || of == Page::Graphics) && !IsTlg() ? Page::Options : home;
 }
 
 // Holding the game stops its threads wherever they are. One of them can be stopped inside the
@@ -1015,7 +1075,7 @@ std::string SectionOf(Page of, const std::string& label, int index) {
     switch (of) {
     case Page::Start:
     case Page::Main:
-        return index == 0 ? "GAME" : label == "OPTIONS" ? "SETUP" : label == "QUIT" ||
+        return index == 0 ? "GAME" : label == "OPTIONS" || label == "GRAPHICS" ? "SETUP" : label == "QUIT" ||
                                                                       label == "RETURN TO MAIN MENU"
                                                                       ? "EXIT"
                                                                       : "";
@@ -1149,8 +1209,8 @@ bool OnEvent(const SDL_Event& event) {
             }
             const std::string name = NameOf(event);
             if (!name.empty() && page == Page::Controls && selected >= 0 &&
-                selected < static_cast<int>(Actions.size())) {
-                Bind(Actions[selected].pad, name);
+                selected < static_cast<int>(GameActions().size())) {
+                Bind(GameActions()[selected].pad, name);
             }
         }
         return true;
@@ -1200,12 +1260,19 @@ bool OnEvent(const SDL_Event& event) {
 void Draw() {
     using namespace ImGui;
 
-    static const bool enabled = Common::ElfInfo::Instance().GameSerial() == "CUSA00004";
+    static const bool enabled =
+        Common::ElfInfo::Instance().GameSerial() == "CUSA00004" || IsTlg();
     if (!enabled) {
         return;
     }
-    static const bool effects_loaded = (LoadEffects(), true);
-    FirstRun::DrawIntro();
+    if (IsTlg()) {
+        start_state = StartState::Done;
+    } else {
+        static const bool effects_loaded = (LoadEffects(), true);
+    }
+    if (!IsTlg()) {
+        FirstRun::DrawIntro();
+    }
     if (FirstRun::IntroActive()) {
         return;
     }

@@ -604,7 +604,8 @@ void WindowSDL::WaitEvent() {
         break;
     case SDL_EVENT_TOGGLE_FRIENDS:
         // The friends hotkey (F2 by default) opens the PC options in the inFAMOUS build.
-        if (Common::ElfInfo::Instance().GameSerial() == "CUSA00004") {
+        if (Common::ElfInfo::Instance().GameSerial() == "CUSA00004" ||
+            Common::ElfInfo::Instance().GameSerial() == "CUSA03627") {
             I3::Menu::Toggle();
         } else {
             ImGui::Friends::Toggle();
