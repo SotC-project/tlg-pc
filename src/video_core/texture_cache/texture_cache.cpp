@@ -49,7 +49,9 @@ TextureCache::TextureCache(const Vulkan::Instance& instance_, Vulkan::Scheduler&
       tile_manager{instance, scheduler, runtime, buffer_cache.GetStreamBuffer()},
       readback_linear_images{EmulatorSettings.IsReadbackLinearImagesEnabled()} {
 
-    u32 max_samplers = instance.GetMaxSamplerAllocationCount();
+    // The sampler pool holds at most MAX_SAMPLERS: drivers that allow more would otherwise never
+    // reach the collection thresholds before the pool runs out.
+    const u32 max_samplers = std::min(instance.GetMaxSamplerAllocationCount(), MAX_SAMPLERS);
     trigger_gc_samplers = max_samplers * 3 / 4;
     pressure_gc_samplers = max_samplers * 7 / 8;
     critical_gc_samplers = max_samplers * 15 / 16;
@@ -1300,7 +1302,11 @@ void TextureCache::GarbageCollectImages() {
     if (instance.CanReportMemoryUsage()) {
         total_used_memory = instance.GetDeviceMemoryUsage();
     }
-    if (total_used_memory < trigger_gc_memory) {
+    // Games that stream many small textures to ever new addresses (The Last Guardian: about 75
+    // a second) fill the image pool long before they reach a memory threshold; from half of the
+    // pool, old images are collected as under memory pressure.
+    const bool too_many = slot_images.Size() >= MAX_IMAGES / 2;
+    if (total_used_memory < trigger_gc_memory && !too_many) {
         return;
     }
     bool pressured = false;
@@ -1309,7 +1315,7 @@ void TextureCache::GarbageCollectImages() {
     size_t num_deletions = 0;
 
     const auto configure = [&](bool allow_aggressive) {
-        pressured = total_used_memory >= pressure_gc_memory;
+        pressured = too_many || total_used_memory >= pressure_gc_memory;
         aggresive = allow_aggressive && total_used_memory >= critical_gc_memory;
         ticks_to_destroy = aggresive ? 160 : pressured ? 80 : 16;
         ticks_to_destroy = std::min(ticks_to_destroy, gc_tick);
@@ -1416,6 +1422,10 @@ void TextureCache::RunGarbageCollector() {
     }
     GarbageCollectImages();
     GarbageCollectSamplers();
+    if (gc_tick % 1800 == 0) {
+        LOG_ERROR(Render, "texture cache pools: images {} views {} samplers {}", slot_images.Size(),
+                  slot_image_views.Size(), slot_samplers.Size());
+    }
     ++gc_tick;
 }
 

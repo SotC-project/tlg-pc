@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2024-2026 shadPS4 Emulator Project
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+#include "common/elf_info.h"
 #include "common/assert.h"
 #include "core/emulator_settings.h"
 #include "shader_recompiler/backend/spirv/emit_spirv_instructions.h"
@@ -290,6 +291,15 @@ void EmitSetAttribute(EmitContext& ctx, IR::Attribute attr, Id value, u32 elemen
     if (IR::IsMrt(attr)) {
         const u32 index{u32(attr) - u32(IR::Attribute::RenderTarget0)};
         const auto& info{ctx.frag_outputs.at(index)};
+        // The Last Guardian: sunlit surfaces could come out as black holes, a NaN or infinity
+        // written to the colour target spreading through the later passes. Keep colour outputs
+        // finite: NaN becomes 0 and infinities the largest half-float value.
+        static const bool finite_colour = Common::ElfInfo::Instance().GameSerial() == "CUSA03627";
+        if (finite_colour && !info.is_integer) {
+            const Id is_nan{ctx.OpIsNan(ctx.U1[1], value)};
+            value = ctx.OpSelect(ctx.F32[1], is_nan, ctx.ConstF32(0.0f), value);
+            value = ctx.OpFClamp(ctx.F32[1], value, ctx.ConstF32(-65504.0f), ctx.ConstF32(65504.0f));
+        }
         if (element < 3 && ctx.runtime_info.hw.fs.color_buffers[index].blend_self_scale) {
             // Emulates GCN's factor-scaled min/max blend: min/max(src*src, dst*dst).
             value = ctx.OpFMul(ctx.F32[1], value, value);
