@@ -2531,13 +2531,25 @@ void Rasterizer::BindTextures(const Shader::Info& stage, Shader::Backend::Bindin
             auto& image = texture_cache.GetImage(image_id);
             auto& image_view = texture_cache.FindTexture(image_id, desc);
             if (Tlg::Ui::Enabled()) {
-                if (image.tlg_tag == -2) {
+                const bool tlg_first = image.tlg_tag == -2;
+                if (tlg_first || (image.tlg_tag == -1 && (++image.tlg_retry & 31) == 0)) {
                     const auto& ii = image.info;
                     image.tlg_tag = -1;
                     if (ii.guest_size <= 512_KB && ii.size.depth == 1 &&
                         memory->IsValidMapping(ii.guest_address, ii.guest_size)) {
-                        image.tlg_tag = static_cast<s8>(Tlg::Ui::Lookup(
-                            memory->HashSparseMemory(ii.guest_address, ii.guest_size)));
+                        const u64 tlg_hash =
+                            memory->HashSparseMemory(ii.guest_address, ii.guest_size);
+                        image.tlg_tag = static_cast<s8>(Tlg::Ui::Lookup(tlg_hash));
+                        // Test aid: TLG_UILOG=2 logs the menu-sized textures that match no tag.
+                        static const bool log_misses = [] {
+                            const char* v = std::getenv("TLG_UILOG");
+                            return v && v[0] == '2';
+                        }();
+                        if (log_misses && tlg_first && image.tlg_tag < 0 && ii.size.width == 1024 &&
+                            ii.size.height == 128) {
+                            LOG_ERROR(Render, "menu texture miss: {:016x} at {:#x} flags {:#x}",
+                                      tlg_hash, ii.guest_address, u32(image.flags));
+                        }
                     }
                 }
                 if (image.tlg_tag >= 0) {

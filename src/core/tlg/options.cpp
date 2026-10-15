@@ -265,12 +265,15 @@ bool Navigate(int step) {
             row = 5;
             return false; // the game moves from Back to Copyright
         }
+        if (step & Down) {
+            row = 0; // the game's list wraps from Back to Camera
+        }
         return false;
     default:
         if (step & Down) {
             row++;
         } else if (step & Up) {
-            row = std::max(row - 1, 0);
+            row = row == 0 ? 6 : row - 1; // wraps from Camera to Back, like the title menu
         }
         return false;
     }
@@ -406,7 +409,7 @@ void Draw() {
 
     const ImVec2 display = ImGui::GetIO().DisplaySize;
     const float scale = std::min(display.x / 1920.0f, display.y / 1080.0f);
-    const Canvas canvas{ImGui::GetBackgroundDrawList(), scale, (display.x - 1920.0f * scale) * 0.5f,
+    const Canvas canvas{ImGui::GetForegroundDrawList(), scale, (display.x - 1920.0f * scale) * 0.5f,
                         (display.y - 1080.0f * scale) * 0.5f};
     if (page == Page::None) {
         DrawList(canvas);

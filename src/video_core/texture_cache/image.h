@@ -172,6 +172,9 @@ public:
     u64 hash{};
     /// The Last Guardian: menu texture tag (core/tlg/ui.h), -1 none, -2 not looked up yet.
     s8 tlg_tag = -2;
+    /// Binds since a miss; a miss is looked up again now and then (the slot may still have
+    /// been blank when it was first bound).
+    u8 tlg_retry = 0;
 
     struct {
         u32 texture : 1;
