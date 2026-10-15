@@ -35,6 +35,30 @@ What the runtime adds for this game (serial CUSA03627 only):
   or an Xbox version while that device is in use, keeping every button where the game's glow
   and leader lines expect it.
 
+## Screenshots
+
+1080p, captured from this build on 2026-10-15, keyboard and mouse in use. The game runs at its
+own 30 frames per second limit.
+
+<table>
+<tr>
+<td width="50%"><img src="docs/img/cave_ring.jpg" alt="The boy and Trico in the first cave"><br>The first cave</td>
+<td width="50%"><img src="docs/img/cave_trico.jpg" alt="Trico, chained"><br>Trico, chained</td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/img/cave_sunbeam.jpg" alt="Light through the cave roof"><br>Light through the cave roof</td>
+<td width="50%"><img src="docs/img/cave_close.jpg" alt="Close to Trico"><br>Close to Trico</td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/img/options_pc_rows.jpg" alt="The game's Options screen with the Graphics and Key Bindings lines"><br>The game's own Options screen, with the PC lines Graphics and Key Bindings</td>
+<td width="50%"><img src="docs/img/options_graphics.jpg" alt="The Graphics page"><br>Graphics</td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/img/options_key_bindings.jpg" alt="The Key Bindings page"><br>Key Bindings, with the game's names for the actions</td>
+<td width="50%"><img src="docs/img/pause_controls_keyboard.jpg" alt="The pause menu's Controls guide with the keyboard diagram"><br>The pause menu's Controls guide and the tutorial hints, keyboard version</td>
+</tr>
+</table>
+
 ## Status
 
 Work in progress. What has been run and checked, headless with scripted input, many times
@@ -119,8 +143,8 @@ Open an issue with what you did, what you saw, and `dist\user\log\shad_log.txt`.
 
 ## What is not here
 
-No game files, no game art, no keys. Decoded textures, archive listings and the generated
-button pictures stay on your machine.
+No game files and no keys. Apart from the screenshots in `docs/img`, no game art: decoded
+textures, archive listings and the generated button pictures stay on your machine.
 
 ## Layout
 
