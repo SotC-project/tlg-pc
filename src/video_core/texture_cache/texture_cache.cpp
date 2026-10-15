@@ -1138,6 +1138,10 @@ void TextureCache::ApplyTexturePack(Image& image) {
     const PackFiles& pack = packs[size_t(ActivePromptSet())];
     pack_applied_set = ActivePromptSet();
     const auto it = pack.find(hash);
+    if (std::getenv("TLG_UILOG") && hash == 0x4641711da2e67237ULL) {
+        LOG_ERROR(Render, "hint picture uploaded, style {}, replaced {}", u32(pack_applied_set),
+                  it != pack.end());
+    }
     if (it == pack.end()) {
         return;
     }
@@ -1404,6 +1408,8 @@ void TextureCache::RunGarbageCollector() {
     }
     if ((reload || pack_applied_set != ActivePromptSet()) && !pack_ranges.empty()) {
         pack_applied_set = ActivePromptSet();
+        LOG_INFO(Render, "Prompt style {}: reloading {} replaced textures", u32(pack_applied_set),
+                 pack_ranges.size());
         for (const auto& [address, size] : pack_ranges) {
             InvalidateMemory(address, size);
         }

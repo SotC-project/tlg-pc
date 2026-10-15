@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <vector>
 #include <cstdlib>
+#include <unordered_set>
 #include <string>
 #include "video_core/pass_filter.h"
 #include "common/debug.h"
@@ -2545,8 +2546,9 @@ void Rasterizer::BindTextures(const Shader::Info& stage, Shader::Backend::Bindin
                             const char* v = std::getenv("TLG_UILOG");
                             return v && v[0] == '2';
                         }();
-                        if (log_misses && tlg_first && image.tlg_tag < 0 && ii.size.width == 1024 &&
-                            ii.size.height == 128) {
+                        static std::unordered_set<u64> logged;
+                        if (log_misses && image.tlg_tag < 0 && ii.size.width == 1024 &&
+                            ii.size.height == 128 && logged.insert(tlg_hash ^ ii.guest_address).second) {
                             LOG_ERROR(Render, "menu texture miss: {:016x} at {:#x} flags {:#x}",
                                       tlg_hash, ii.guest_address, u32(image.flags));
                         }
@@ -2554,6 +2556,8 @@ void Rasterizer::BindTextures(const Shader::Info& stage, Shader::Backend::Bindin
                 }
                 if (image.tlg_tag >= 0) {
                     g_tlg_draw_tags |= 1u << image.tlg_tag;
+                } else if (image.info.size.width == 1024 && image.info.size.height == 128) {
+                    g_tlg_draw_tags |= 1u << Tlg::Ui::UnknownLabel;
                 }
             }
             {

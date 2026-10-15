@@ -31,14 +31,19 @@ using Ui::Bit;
 
 // ---- What the game shows ----
 
-// The game's top Options list: Camera, Screen, Audio, Copyright, Back. Its own pages each have
-// a title texture of their own.
-constexpr u32 ListTags = Bit(Ui::ItemCamera) | Bit(Ui::ItemCopyright);
+// The game's top Options list: Camera, Screen, Audio, Copyright, Back (from the pause menu,
+// Controls in place of Copyright; the game binds every item texture in both). Its own pages
+// each have a title texture of their own.
+// Any one of the list's items is enough: a texture can be missed while its slot is still being
+// filled, and the pause menu itself binds none of them.
+constexpr u32 ListTags = Bit(Ui::ItemCamera) | Bit(Ui::ItemScreen) | Bit(Ui::ItemAudio) |
+                         Bit(Ui::ItemCopyright) | Bit(Ui::ItemGuide) | Bit(Ui::ItemTreasure);
 constexpr u32 PageTags = Bit(Ui::CameraTitle) | Bit(Ui::ScreenTitle) | Bit(Ui::AudioTitle) |
                          Bit(Ui::CopyrightTitle) | Bit(Ui::GuideTitle);
 constexpr u32 ListDrawTags = Bit(Ui::OptionTitle) | Bit(Ui::ItemCamera) | Bit(Ui::ItemScreen) |
                              Bit(Ui::ItemAudio) | Bit(Ui::ItemCopyright) | Bit(Ui::ItemBack) |
-                             Bit(Ui::ItemGuide) | Bit(Ui::ItemTreasure) | Bit(Ui::Cursor);
+                             Bit(Ui::ItemGuide) | Bit(Ui::ItemTreasure) | Bit(Ui::Cursor) |
+                             (1u << Ui::UnknownLabel);
 
 // ---- Rows ----
 
@@ -319,14 +324,17 @@ void Arrow(const Canvas& c, float x, float y) {
 }
 
 void DrawList(const Canvas& c) {
-    // The game's rows sit at 468, 516, 564, 613; Back is drawn here, below the PC rows.
+    // The game's rows sit at 468, 516, 564, 613; Back is drawn here, below the PC rows. The
+    // pause menu's Options list (Controls in place of Copyright) sits 23 pixels higher.
     constexpr float Pitch = 48.0f;
-    const std::array<std::string, 3> labels{Tr("Graphics"), Tr("Controls"), Tr("Back")};
-    const std::array<float, 3> ys{613.0f + Pitch, 613.0f + 2 * Pitch, 613.0f + 2 * Pitch + 94.0f};
+    const float dy = (Ui::Seen() & Bit(Ui::PauseTitle)) ? -23.0f : 0.0f;
+    const std::array<std::string, 3> labels{Tr("Graphics"), Tr("Key Bindings"), Tr("Back")};
+    const std::array<float, 3> ys{613.0f + Pitch + dy, 613.0f + 2 * Pitch + dy,
+                                  613.0f + 2 * Pitch + 94.0f + dy};
     for (int i = 0; i < 3; i++) {
         Text(c, 148.0f, ys[i], 31.0f, White, labels[i]);
     }
-    const float arrow_y = row <= 3 ? 468.0f + row * 48.3f : ys[row - 4];
+    const float arrow_y = row <= 3 ? 468.0f + row * 48.3f + dy : ys[row - 4];
     Arrow(c, 117.0f, arrow_y);
 }
 
@@ -336,7 +344,7 @@ void DrawPage(const Canvas& c) {
                           14.0f * c.scale);
     c.draw->AddRect(c.At(50.0f, 65.0f), c.At(1090.0f, 715.0f), IM_COL32(150, 150, 150, 200),
                     14.0f * c.scale, 0, 2.0f * c.scale);
-    Text(c, 113.0f, 125.0f, 38.0f, White, page == Page::Graphics ? Tr("Graphics") : Tr("Controls"));
+    Text(c, 113.0f, 125.0f, 38.0f, White, page == Page::Graphics ? Tr("Graphics") : Tr("Key Bindings"));
     const int count = PageLines();
     if (page == Page::Graphics) {
         const auto lines = GraphicsLines();
@@ -384,7 +392,7 @@ void Draw() {
     Ui::EndFrame();
     std::scoped_lock lock{mutex};
     const u32 seen = Ui::Seen();
-    const bool shown = (seen & ListTags) == ListTags && (seen & PageTags) == 0;
+    const bool shown = (seen & ListTags) != 0 && (seen & PageTags) == 0;
     if (shown != list_shown) {
         // Entering the list from a game page keeps the game's cursor where it was; from the
         // title or pause menu the game starts at Camera.

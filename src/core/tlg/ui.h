@@ -12,6 +12,10 @@
 // the rows replace (the game's cursor and its Back line, moved below the PC rows).
 namespace Tlg::Ui {
 
+/// Bit for a 1024 x 128 texture (the size of the menu's labels) that matched no tag: a label
+/// whose slot still read blank when it was looked up. Hidden with the list while a PC page is open.
+constexpr int UnknownLabel = 31;
+
 constexpr u32 Bit(Tag tag) {
     return 1u << tag;
 }
