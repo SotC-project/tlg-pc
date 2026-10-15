@@ -53,26 +53,27 @@ struct Action {
     const char* pad;
     const char* label;
 };
+// Labels from the game's own Controls guide; the buttons it does not name keep theirs.
 constexpr std::array<Action, 20> Actions{{
     {"axis_left_y_minus", "Move Forward"},
     {"axis_left_y_plus", "Move Back"},
     {"axis_left_x_minus", "Move Left"},
     {"axis_left_x_plus", "Move Right"},
-    {"cross", "Jump"},
-    {"circle", "Grab / Interact"},
-    {"square", "Square Button"},
-    {"triangle", "Triangle Button"},
+    {"triangle", "Jump"},
+    {"circle", "Pick Up / Grab"},
+    {"cross", "Crouch"},
+    {"square", "Tackle / Throw"},
     {"r1", "Call Trico"},
+    {"l3", "Contemplate (Hold)"},
+    {"pad_left", "Wield / Put Away Mirror"},
     {"l1", "L1 Button"},
     {"r2", "R2 Button"},
     {"l2", "L2 Button"},
-    {"l3", "L3 Button"},
-    {"r3", "Reset Camera"},
+    {"r3", "R3 Button"},
     {"options", "Pause"},
     {"touchpad_center", "Touch Pad"},
     {"pad_up", "D-pad Up"},
     {"pad_down", "D-pad Down"},
-    {"pad_left", "D-pad Left"},
     {"pad_right", "D-pad Right"},
 }};
 
@@ -92,6 +93,8 @@ bool list_shown = false;
 // The selected line of the joined list: 0-3 the game's Camera..Copyright, 4 Graphics,
 // 5 Controls, 6 Back. The game's own cursor stays on Copyright while 4 or 5 is selected.
 int row = 0;
+/// The game row (0-3) whose page was opened from the list; the game returns to it.
+int opened = -1;
 Page page = Page::None;
 int page_row = 0;
 bool capturing = false;
@@ -240,6 +243,9 @@ bool Navigate(int step) {
     }
     switch (row) {
     case 3:
+        if (step & Confirm) {
+            opened = 3;
+        }
         if (step & Down) {
             row = 4;
             return true;
@@ -275,6 +281,9 @@ bool Navigate(int step) {
         }
         return false;
     default:
+        if (step & Confirm) {
+            opened = row;
+        }
         if (step & Down) {
             row++;
         } else if (step & Up) {
@@ -365,6 +374,19 @@ void DrawPage(const Canvas& c) {
             const bool current = page_row == i;
             std::string keys = current && capturing ? Tr("Press a key...")
                                                     : I3::Menu::KeysOf(file_lines, Actions[i].pad);
+            // Keys beyond the column's width are cut at a comma.
+            const auto width = [&](const std::string& s) {
+                return Font()->CalcTextSizeA(25.0f, FLT_MAX, 0.0f, s.c_str()).x;
+            };
+            bool cut = false;
+            while (width(keys + (cut ? ", ..." : "")) > 155.0f &&
+                   keys.rfind(", ") != std::string::npos) {
+                keys = keys.substr(0, keys.rfind(", "));
+                cut = true;
+            }
+            if (cut) {
+                keys += ", ...";
+            }
             Text(c, x, y, 25.0f, White, Tr(Actions[i].label));
             Text(c, x + 300.0f, y, 25.0f, current && capturing ? White : Dim, keys);
         }
@@ -394,14 +416,13 @@ void Draw() {
     const u32 seen = Ui::Seen();
     const bool shown = (seen & ListTags) != 0 && (seen & PageTags) == 0;
     if (shown != list_shown) {
-        // Entering the list from a game page keeps the game's cursor where it was; from the
-        // title or pause menu the game starts at Camera.
-        static u32 seen_before = 0;
-        if (shown && (seen_before & PageTags) == 0) {
-            row = 0;
-        }
-        if (!shown) {
-            seen_before = seen;
+        // Back from one of its pages, the game's cursor is on the row that opened it; from the
+        // title or pause menu it starts at Camera. Remembered from the Cross press rather than
+        // seen in the page's title texture, which can be missed.
+        if (shown) {
+            row = opened >= 0 ? opened : 0;
+            opened = -1;
+        } else {
             page = Page::None;
             capturing = false;
         }
