@@ -41,7 +41,8 @@ Work in progress. What has been run and checked, headless with scripted input, m
 without a crash:
 
 - boot, logos, title screen, New Game and Continue, the opening sequence;
-- gameplay in the first cave at a steady 30 frames per second (the game's own limit);
+- gameplay in the first cave at a steady 30 frames per second (the game's own limit),
+  including 21-minute sessions of continuous scripted play without a crash;
 - keyboard and mouse moving the boy and the camera; an Xbox controller in the menus and moving
   the boy;
 - the Options screen from the title and from the pause menu, with the Graphics and Key Bindings
@@ -68,6 +69,9 @@ menu shortcuts) and the player's guide `README.txt`.
 `dist\game_path.txt` holds the path of the game's `eboot.bin`, one line. Started without
 arguments, the program reads it and boots straight into the game; settings and saves stay in
 `dist\user`.
+
+After updating the program, delete `dist\user\cache`: compiled shaders are cached there by the
+game's shader, so an older build's versions would otherwise be used.
 
 ### 4. Controls
 

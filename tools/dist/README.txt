@@ -3,10 +3,11 @@ The Last Guardian - PC build (work in progress)
 
 Start:     the Desktop or Start menu shortcut, "Play.bat", or "The Last Guardian.exe" here
 Shortcuts: Install.bat creates them (Install.bat -Remove deletes them)
-Game data: D:\Games\CUSA03627, version 01.03 (read only, never modified; the path is in
-           game_path.txt)
+Game data: your dump of CUSA03627, version 01.03; game_path.txt holds the path of its
+           eboot.bin (read only, never modified)
 Saves:     user\home\1000\savedata\CUSA03627
 Bindings:  user\input_config\CUSA03627.ini  (F8 reloads it while the game runs)
+Updating:  after replacing the program, delete user\cache (compiled shaders of the old build)
 
 Options:   this build's settings are rows of the game's own Options screen (from the title
            screen and from the pause menu): below the game's lines come Graphics and
